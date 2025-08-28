@@ -1,194 +1,210 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface User {
   id: string;
-  username: string;
   email: string;
   role: 'admin' | 'editor';
   name: string;
+  user_metadata?: any;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
+  logout: () => void;
   loading: boolean;
   error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function useAuth() {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
+};
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  /** Load extra profile data from the `users` table */
-  const fetchUserData = useCallback(async (userId: string) => {
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('users')
-        .select('id, username, email, role, name')
-        .eq('id', userId)
-        .eq('status', 'active')
-        .maybeSingle(); // ✅ safe, returns null if not found
-
-      if (fetchError) {
-        console.error('Error fetching user data:', fetchError);
-        setError('User not found or inactive. Please contact administrator.');
-        return;
-      }
-      if (!data) {
-        setError('User not found or inactive. Please contact administrator.');
-        return;
-      }
-
-      setUser(data);
-      setIsAuthenticated(true);
-      setError(null);
-
-      // Fire and forget last_login update
-      supabase
-        .from('users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', userId)
-        .then();
-    } catch (err) {
-      console.error('Error fetching user data:', err);
-      setError('Failed to load user information');
-    }
-  }, []);
-
-  /** On mount, check if user already has a session */
   useEffect(() => {
-    const initAuth = async () => {
-      setLoading(true);
+    // Check if user is already logged in
+    const checkUser = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          setError(error.message);
+          return;
+        }
 
         if (session?.user) {
-          await fetchUserData(session.user.id);
+          await setUserFromSession(session.user);
         }
-      } catch (err) {
-        console.error('Error checking user session:', err);
+      } catch (error) {
+        console.error('Error checking user session:', error);
         setError('Failed to check authentication status');
       } finally {
         setLoading(false);
       }
     };
 
-    initAuth();
+    checkUser();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setError(null);
+      
       if (event === 'SIGNED_IN' && session?.user) {
-        await fetchUserData(session.user.id);
+        await setUserFromSession(session.user);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setIsAuthenticated(false);
-        setError(null);
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        await setUserFromSession(session.user);
       }
       setLoading(false);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [fetchUserData]);
-
-  /** Login flow: verify active user, then sign in */
-  const login = useCallback(
-    async (email: string, password: string): Promise<boolean> => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Check if user exists & is active
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('id, username, email, role, name')
-          .eq('email', email)
-          .eq('status', 'active')
-          .maybeSingle(); // ✅ avoid throw when no rows
-
-        if (userError || !userData) {
-          setError('Invalid email or password');
-          return false;
-        }
-
-        // Supabase Auth sign in
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (authError) {
-          console.error('Authentication error:', authError);
-          setError('Invalid email or password');
-          return false;
-        }
-
-        setUser(userData);
-        setIsAuthenticated(true);
-        setError(null);
-
-        // Update last login
-        supabase
-          .from('users')
-          .update({ last_login: new Date().toISOString() })
-          .eq('id', userData.id)
-          .then();
-
-        return true;
-      } catch (err) {
-        console.error('Login error:', err);
-        setError('Login failed. Please try again.');
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  /** Logout user */
-  const logout = useCallback(async () => {
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setIsAuthenticated(false);
-      setError(null);
-    } catch (err) {
-      console.error('Logout error:', err);
-      setError('Logout failed');
-    }
+    return () => subscription.unsubscribe();
   }, []);
 
+  const setUserFromSession = async (supabaseUser: SupabaseUser) => {
+    try {
+      // Get user profile from database or use metadata
+      const { data: userProfile, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', supabaseUser.email)
+        .single();
+
+      let userData: User;
+
+      if (userProfile && !error) {
+        // User exists in our users table
+        userData = {
+          id: supabaseUser.id,
+          email: supabaseUser.email!,
+          role: userProfile.role || 'editor',
+          name: userProfile.name || supabaseUser.user_metadata?.name || supabaseUser.email!,
+          user_metadata: supabaseUser.user_metadata
+        };
+      } else {
+        // Use Supabase user metadata or defaults
+        userData = {
+          id: supabaseUser.id,
+          email: supabaseUser.email!,
+          role: supabaseUser.user_metadata?.role || 'editor',
+          name: supabaseUser.user_metadata?.name || supabaseUser.email!,
+          user_metadata: supabaseUser.user_metadata
+        };
+      }
+
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      // Update last login in database if user exists
+      if (userProfile && !error) {
+        await supabase
+          .from('users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', userProfile.id);
+      }
+    } catch (error) {
+      console.error('Error setting user from session:', error);
+      setError('Failed to load user profile');
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError('Please enter a valid email address');
+        return false;
+      }
+
+      // Sign in with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        
+        // Handle specific error types
+        if (error.message.includes('Invalid login credentials')) {
+          setError('Invalid email or password. Please check your credentials.');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('Please confirm your email address before signing in.');
+        } else if (error.message.includes('Too many requests')) {
+          setError('Too many login attempts. Please wait a moment and try again.');
+        } else {
+          setError(error.message);
+        }
+        return false;
+      }
+
+      if (data.user) {
+        await setUserFromSession(data.user);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('An unexpected error occurred. Please try again.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Logout error:', error);
+        setError('Failed to sign out');
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+        setError(null);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      setError('An error occurred during sign out');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider
-      value={{ user, isAuthenticated, login, logout, loading, error }}
-    >
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      login, 
+      logout, 
+      loading, 
+      error 
+    }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
