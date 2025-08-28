@@ -560,7 +560,7 @@ const CouncilAndStaff: React.FC = () => {
         </div>
       </ModernCard>
     ))
-  </div>
+
 ) : (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
     {/* fallback content */}
