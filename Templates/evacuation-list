@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Users, Phone, Search, Filter, ChevronDown, ChevronUp, Home, Navigation } from 'lucide-react';
+import { MapPin, Users, Phone, Search, Filter, ChevronDown, ChevronUp, Home, Navigation, ExternalLink } from 'lucide-react';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -65,6 +65,11 @@ const App = () => {
 
   const toggleCenter = (id) => {
     setExpandedCenter(expandedCenter === id ? null : id);
+  };
+
+  const openInGoogleMaps = (lat, lng) => {
+    const url = `https://www.google.com/maps?q=${lat},${lng}`;
+    window.open(url, '_blank');
   };
 
   const totalCapacity = evacuationCenters.reduce((sum, center) => sum + center.capacity, 0);
@@ -170,7 +175,7 @@ const App = () => {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCenters.map((center) => (
-              <div key={center.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+              <div key={center.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <div className="bg-gradient-to-r from-blue-950 to-blue-900 p-5">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold text-yellow-500">{center.name}</h3>
@@ -187,10 +192,14 @@ const App = () => {
                 
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="text-sm text-gray-600">
-                      <p>Coordinates:</p>
-                      <p className="font-mono">{center.lat.toFixed(6)}, {center.lng.toFixed(6)}</p>
-                    </div>
+                    <button
+                      onClick={() => openInGoogleMaps(center.lat, center.lng)}
+                      className="flex items-center gap-2 text-blue-950 hover:text-yellow-500 transition-colors"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-sm font-medium">View on Map</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
                     <button
                       onClick={() => toggleCenter(center.id)}
                       className="text-blue-950 hover:text-yellow-500 transition-colors"
