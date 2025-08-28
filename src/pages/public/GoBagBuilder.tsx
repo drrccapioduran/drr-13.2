@@ -1,38 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Backpack, 
-  Droplets, 
-  Utensils, 
-  Radio, 
-  Battery, 
-  Lightbulb, 
-  Shield, 
-  FirstAid, 
-  FileText, 
-  Phone, 
-  Coins, 
-  Clock, 
-  CheckCircle, 
-  User,
-  Home,
-  MapPin,
-  Users,
-  Baby,
-  Accessibility,
-  Dog,
-  Calendar,
-  Download,
-  Printer,
-  Share2,
-  Plus,
-  Minus,
-  Languages,
-  AlertTriangle,
-  Wind,
-  Waves,
-  Mountain,
-  CloudRain
-} from 'lucide-react';
+import { Backpack, Droplets, Utensils, Radio, Battery, Lightbulb, Shield, ChevronFirst as FirstAid, FileText, Phone, Coins, Clock, CheckCircle, User, Home, MapPin, Users, Baby, Accessibility, Dog, Calendar, Download, Printer, Share2, Plus, Minus, Languages, AlertTriangle, Wind, Waves, Mountain, CloudRain } from 'lucide-react';
 import SEOHead from '../../components/SEOHead';
 import ModernCard from '../../components/ModernCard';
 import ModernButton from '../../components/ModernButton';
