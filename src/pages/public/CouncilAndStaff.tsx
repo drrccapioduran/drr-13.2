@@ -485,7 +485,6 @@ const CouncilAndStaff: React.FC = () => {
                   <p className="text-yellow-200 text-sm mt-2">{organizationalStructure.head.department}</p>
                 </ModernCard>
               </div>
-
 {/* Core Officers */}
 {displayHierarchy.length > 0 ? (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -559,14 +558,14 @@ const CouncilAndStaff: React.FC = () => {
           ))}
         </div>
       </ModernCard>
-    ))
-
+    ))}
+  </div>
+) : (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
     {/* fallback content */}
   </div>
 )}
-
-
+   
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <ModernCard key={officer.id} variant="interactive" className="overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-950 to-blue-900 p-6 text-center">
