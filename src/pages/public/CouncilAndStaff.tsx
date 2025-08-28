@@ -558,9 +558,11 @@ const CouncilAndStaff: React.FC = () => {
           ))}
         </div>
       </ModernCard>
-    ))
-   
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    ))}
+  </div>
+) : (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
                   <ModernCard key={officer.id} variant="interactive" className="overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-950 to-blue-900 p-6 text-center">
                       <h3 className="text-lg font-bold text-yellow-500">{officer.name}</h3>
