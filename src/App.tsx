@@ -18,6 +18,13 @@ import DisasterPlanPage from './pages/public/DisasterPlanPage';
 import Contact from './pages/public/Contact';
 import Gallery from './pages/public/Gallery';
 import DynamicPage from './pages/public/DynamicPage';
+import EvacuationGenerator from './pages/public/EvacuationGenerator';
+import EvacuationList from './pages/public/EvacuationList';
+import IECMaterials from './pages/public/IECMaterials';
+import CouncilAndStaff from './pages/public/CouncilAndStaff';
+import VolunteerProgram from './pages/public/VolunteerProgram';
+import FAQ from './pages/public/FAQ';
+import GoBagBuilder from './pages/public/GoBagBuilder';
 
 // Admin Pages
 import AdminLayout from './layouts/AdminLayout';
@@ -66,6 +73,13 @@ function App() {
                   <Route path="gallery" element={<Gallery />} />
                   <Route path="video-gallery" element={<VideoGallery />} />
                   <Route path="contact" element={<Contact />} />
+                  <Route path="evacuation-generator" element={<EvacuationGenerator />} />
+                  <Route path="evacuation-centers" element={<EvacuationList />} />
+                  <Route path="iec-materials" element={<IECMaterials />} />
+                  <Route path="council-staff" element={<CouncilAndStaff />} />
+                  <Route path="volunteer" element={<VolunteerProgram />} />
+                  <Route path="faq" element={<FAQ />} />
+                  <Route path="go-bag-builder" element={<GoBagBuilder />} />
                   {/* Dynamic pages route */}
                   <Route path=":slug" element={<DynamicPage />} />
                 </Route>

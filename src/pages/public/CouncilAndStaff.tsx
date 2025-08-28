@@ -1,12 +1,37 @@
 import React, { useState } from 'react';
-import { User, Users, MapPin, Award, ChevronDown, ChevronUp, Building, Shield, Mail, Phone, Calendar } from 'lucide-react';
+import { User, Users, MapPin, Award, ChevronDown, ChevronUp, Building, Shield, Mail, Phone, Calendar, FileText } from 'lucide-react';
 import SEOHead from '../../components/SEOHead';
 import ModernCard from '../../components/ModernCard';
 import ModernButton from '../../components/ModernButton';
+import { supabase } from '../../lib/supabase';
+import { Link } from 'react-router-dom';
 
 const CouncilAndStaff: React.FC = () => {
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'council' | 'staff'>('council');
+  const [organizationalHierarchy, setOrganizationalHierarchy] = useState<any[]>([]);
+  const [keyPersonnel, setKeyPersonnel] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    fetchOrganizationalData();
+  }, []);
+
+  const fetchOrganizationalData = async () => {
+    try {
+      const [hierarchyData, personnelData] = await Promise.all([
+        supabase.from('organizational_hierarchy').select('*').eq('is_active', true).order('level').order('order_index'),
+        supabase.from('key_personnel').select('*').eq('is_active', true).order('order_index')
+      ]);
+
+      setOrganizationalHierarchy(hierarchyData.data || []);
+      setKeyPersonnel(personnelData.data || []);
+    } catch (error) {
+      console.error('Error fetching organizational data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleMember = (id: string) => {
     setExpandedMember(expandedMember === id ? null : id);
@@ -227,6 +252,41 @@ const CouncilAndStaff: React.FC = () => {
     ]
   };
 
+  // Use database data if available, otherwise use defaults
+  const displayHierarchy = organizationalHierarchy.length > 0 ? organizationalHierarchy : [];
+  const displayPersonnel = keyPersonnel.length > 0 ? keyPersonnel : [];
+
+  // If no data available, show admin link
+  if (!loading && organizationalHierarchy.length === 0 && keyPersonnel.length === 0) {
+    return (
+      <>
+        <SEOHead
+          title="Council & Staff - MDRRMO Pio Duran"
+          description="Meet the Municipal Disaster Risk Reduction and Management Council members and MDRRMO staff."
+        />
+        <div className="min-h-screen bg-gray-50 py-20">
+          <div className="container mx-auto px-6">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-blue-900 mb-8">Council & Staff</h1>
+              <div className="bg-white rounded-xl shadow-lg p-12">
+                <Users className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">No Staff Information Available</h2>
+                <p className="text-gray-600 mb-6">Staff information will appear here once added by the admin.</p>
+                <Link 
+                  to="/admin/about"
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <FileText className="mr-2" size={16} />
+                  Go to Admin Panel
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <SEOHead
@@ -427,8 +487,76 @@ const CouncilAndStaff: React.FC = () => {
               </div>
 
               {/* Core Officers */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {organizationalStructure.coreOfficers.map((officer) => (
+              {displayHierarchy.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {displayHierarchy
+                    .filter(person => person.level > 2)
+                    .reduce((groups, person) => {
+                      const dept = person.department;
+                      if (!groups[dept]) groups[dept] = [];
+                      groups[dept].push(person);
+                      return groups;
+                    }, {} as Record<string, any[]>)
+                  }
+                  {Object.entries(
+                    displayHierarchy
+                      .filter(person => person.level > 2)
+                      .reduce((groups, person) => {
+                        const dept = person.department;
+                        if (!groups[dept]) groups[dept] = [];
+                        groups[dept].push(person);
+                        return groups;
+                      }, {} as Record<string, any[]>)
+                  ).map(([department, personnel]) => (
+                    <ModernCard key={department} variant="interactive" className="overflow-hidden">
+                      <div className="bg-gradient-to-r from-blue-950 to-blue-900 p-6 text-center">
+                        <h3 className="text-lg font-bold text-yellow-500">{department}</h3>
+                      </div>
+                      <div className="p-6">
+                        {personnel.map((person) => (
+                          <div 
+                            key={person.id} 
+                            className="border-b border-gray-200 last:border-b-0 py-4 cursor-pointer hover:bg-blue-50 transition-colors rounded-lg px-2"
+                            onClick={() => toggleMember(`hierarchy-${person.id}`)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-4">
+                                <img 
+                                  src={person.photo || 'https://res.cloudinary.com/dedcmctqk/image/upload/v1749381954/samples/smile.jpg'}
+                                  alt={person.name}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-blue-950 flex-shrink-0"
+                                />
+                                <div className="flex-1">
+                                  <h4 className="font-bold text-blue-950 mb-1">{person.name}</h4>
+                                  <p className="text-sm text-gray-600 mb-2">{person.designation}</p>
+                                  
+                                  {expandedMember === `hierarchy-${person.id}` && (
+                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg animate-fade-in">
+                                      <div className="space-y-2 text-sm text-gray-700">
+                                        <p><strong>Department:</strong> {person.department}</p>
+                                        <p><strong>Level:</strong> {person.level}</p>
+                                        <p><strong>Order:</strong> {person.order_index}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <button className="text-blue-950 hover:text-yellow-500 transition-colors ml-2 self-start mt-1">
+                                {expandedMember === `hierarchy-${person.id}` ? 
+                                  <ChevronUp size={20} /> : 
+                                  <ChevronDown size={20} />
+                                }
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ModernCard>
+                  ))}
+                </div>
+              )}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <ModernCard key={officer.id} variant="interactive" className="overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-950 to-blue-900 p-6 text-center">
                       <h3 className="text-lg font-bold text-yellow-500">{officer.name}</h3>

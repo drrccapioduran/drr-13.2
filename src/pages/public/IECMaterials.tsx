@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
-import { Download, FileText, Map, Shield, Phone, Waves, Wind, Earth, Flame, CloudRain, Search, Filter, Eye, Star, Calendar } from 'lucide-react';
+import { Download, FileText, Map, Shield, Phone, Waves, Wind, Earth, Flame, CloudRain, Search, Filter, Eye, Star, Calendar, Users } from 'lucide-react';
 import SEOHead from '../../components/SEOHead';
 import ModernCard from '../../components/ModernCard';
 import ModernButton from '../../components/ModernButton';
 import DownloadButton from '../../components/DownloadButton';
+import { usePages } from '../../contexts/PagesContext';
+import { Link } from 'react-router-dom';
 
 const IECMaterials: React.FC = () => {
+  const { resources } = usePages();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('title');
 
+  // Use actual resources if available, otherwise use sample data
+  const publishedResources = resources.filter(resource => resource.status === 'published');
+  
   const downloadMaterials = [
     {
       id: 1,
@@ -169,15 +175,50 @@ const IECMaterials: React.FC = () => {
     }
   ];
 
+  // Use real resources if available, otherwise use sample materials
+  const materialsToShow = publishedResources.length > 0 
+    ? publishedResources.map(resource => ({
+        id: resource.id,
+        title: resource.title,
+        description: resource.description,
+        icon: getIconForCategory(resource.category),
+        category: resource.category,
+        fileUrl: resource.file_url,
+        size: resource.file_size ? formatFileSize(resource.file_size) : 'Unknown',
+        updated: new Date(resource.updated_at).toISOString().split('T')[0],
+        downloads: resource.download_count,
+        featured: resource.featured,
+        tags: resource.tags
+      }))
+    : downloadMaterials;
+
+  const getIconForCategory = (category: string) => {
+    switch (category) {
+      case 'map': return Map;
+      case 'guide': return Shield;
+      case 'form': return FileText;
+      case 'plan': return FileText;
+      default: return FileText;
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const categories = [
-    { id: 'all', name: 'All Materials', count: downloadMaterials.length },
-    { id: 'guides', name: 'Safety Guides', count: downloadMaterials.filter(m => m.category === 'guides').length },
-    { id: 'maps', name: 'Maps & Routes', count: downloadMaterials.filter(m => m.category === 'maps').length },
-    { id: 'plans', name: 'Response Plans', count: downloadMaterials.filter(m => m.category === 'plans').length },
-    { id: 'templates', name: 'Templates', count: downloadMaterials.filter(m => m.category === 'templates').length }
+    { id: 'all', name: 'All Materials', count: materialsToShow.length },
+    { id: 'guides', name: 'Safety Guides', count: materialsToShow.filter(m => m.category === 'guides').length },
+    { id: 'maps', name: 'Maps & Routes', count: materialsToShow.filter(m => m.category === 'maps').length },
+    { id: 'plans', name: 'Response Plans', count: materialsToShow.filter(m => m.category === 'plans').length },
+    { id: 'templates', name: 'Templates', count: materialsToShow.filter(m => m.category === 'templates').length }
   ];
 
-  const filteredMaterials = downloadMaterials
+  const filteredMaterials = materialsToShow
     .filter(material => {
       const matchesSearch = 
         material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -201,8 +242,39 @@ const IECMaterials: React.FC = () => {
       }
     });
 
-  const featuredMaterials = downloadMaterials.filter(m => m.featured);
-  const totalDownloads = downloadMaterials.reduce((sum, m) => sum + m.downloads, 0);
+  const featuredMaterials = materialsToShow.filter(m => m.featured);
+  const totalDownloads = materialsToShow.reduce((sum, m) => sum + m.downloads, 0);
+
+  // If no resources available, show admin link
+  if (publishedResources.length === 0) {
+    return (
+      <>
+        <SEOHead
+          title="IEC Materials & Downloads - MDRRMO Pio Duran"
+          description="Download essential Information, Education, and Communication materials for disaster preparedness."
+        />
+        <div className="min-h-screen bg-gray-50 py-20">
+          <div className="container mx-auto px-6">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-blue-900 mb-8">IEC Materials & Downloads</h1>
+              <div className="bg-white rounded-xl shadow-lg p-12">
+                <FileText className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">No Materials Available</h2>
+                <p className="text-gray-600 mb-6">IEC materials will appear here once uploaded by the admin.</p>
+                <Link 
+                  to="/admin/resources"
+                  className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Users className="mr-2" size={16} />
+                  Go to Admin Panel
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -241,7 +313,7 @@ const IECMaterials: React.FC = () => {
                   <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-yellow-500 mb-4">
                     <FileText className="w-6 h-6 text-blue-950" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">{downloadMaterials.length}</h3>
+                  <h3 className="text-2xl font-bold text-white mb-2">{materialsToShow.length}</h3>
                   <p className="text-blue-200">Available Materials</p>
                 </ModernCard>
                 

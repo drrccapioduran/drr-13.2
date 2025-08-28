@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { User, Phone, Mail, MapPin, Calendar, Heart, Shield, Users, Award, CheckCircle, Send, Clock, Star, Target } from 'lucide-react';
+import { User, Phone, Mail, MapPin, Calendar, Heart, Shield, Users, Award, CheckCircle, Send, Clock, Star, Target, FileText } from 'lucide-react';
 import SEOHead from '../../components/SEOHead';
 import ModernCard from '../../components/ModernCard';
 import ModernButton from '../../components/ModernButton';
+import { useData } from '../../contexts/DataContext';
+import { Link } from 'react-router-dom';
 
 const VolunteerProgram: React.FC = () => {
+  const { addIncident } = useData();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -32,28 +35,52 @@ const VolunteerProgram: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsSubmitted(true);
-    setIsSubmitting(false);
-    
-    // Reset form after 3 seconds
-    setTimeout(() => {
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        address: '',
-        availability: '',
-        skills: '',
-        motivation: '',
-        emergencyContact: '',
-        emergencyPhone: ''
-      });
-      setIsSubmitted(false);
-    }, 3000);
+    try {
+      // Submit volunteer application as an incident report
+      const volunteerData = {
+        reporter_name: `${formData.firstName} ${formData.lastName}`,
+        contact_number: formData.phone,
+        location: formData.address,
+        incident_type: 'Volunteer Application',
+        description: `Volunteer Application:
+
+Name: ${formData.firstName} ${formData.lastName}
+Email: ${formData.email}
+Phone: ${formData.phone}
+Address: ${formData.address}
+Availability: ${formData.availability}
+Skills: ${formData.skills}
+Motivation: ${formData.motivation}
+Emergency Contact: ${formData.emergencyContact} (${formData.emergencyPhone})`,
+        urgency: 'LOW' as const,
+        status: 'pending' as const
+      };
+
+      await addIncident(volunteerData);
+      setIsSubmitted(true);
+      
+      // Reset form after 3 seconds
+      setTimeout(() => {
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          address: '',
+          availability: '',
+          skills: '',
+          motivation: '',
+          emergencyContact: '',
+          emergencyPhone: ''
+        });
+        setIsSubmitted(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error submitting volunteer application:', error);
+      alert('Error submitting application. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const benefits = [

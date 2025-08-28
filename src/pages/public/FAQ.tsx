@@ -1,16 +1,55 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Shield, AlertTriangle, Phone, Mail, MapPin, Users, Calendar, FileText, HelpCircle, Search, Filter } from 'lucide-react';
+import { ChevronDown, ChevronUp, Shield, AlertTriangle, Phone, Mail, MapPin, Users, Calendar, FileText, HelpCircle, Search, Filter, Send } from 'lucide-react';
 import SEOHead from '../../components/SEOHead';
 import ModernCard from '../../components/ModernCard';
 import ModernButton from '../../components/ModernButton';
+import { useData } from '../../contexts/DataContext';
 
 const FAQ: React.FC = () => {
+  const { addIncident } = useData();
   const [openQuestion, setOpenQuestion] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toggleQuestion = (id: number) => {
     setOpenQuestion(openQuestion === id ? null : id);
+  };
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Submit contact form as an incident report
+      const contactData = {
+        reporter_name: contactForm.name,
+        contact_number: contactForm.email,
+        location: 'FAQ Contact Form',
+        incident_type: 'General Inquiry',
+        description: `FAQ Contact Form Submission:
+
+Name: ${contactForm.name}
+Email: ${contactForm.email}
+Message: ${contactForm.message}`,
+        urgency: 'LOW' as const,
+        status: 'pending' as const
+      };
+
+      await addIncident(contactData);
+      alert('Message sent successfully! We will respond soon.');
+      setContactForm({ name: '', email: '', message: '' });
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      alert('Error sending message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const faqCategories = [
@@ -476,35 +515,91 @@ const FAQ: React.FC = () => {
         {/* Call to Action */}
         <section className="py-16 px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <ModernCard variant="gradient" className="p-12 shadow-2xl">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-950 mb-6">
-                <Shield className="w-8 h-8 text-yellow-500" />
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-blue-950 mb-4">
-                Still Have Questions?
-              </h2>
-              <p className="text-xl text-blue-800 mb-8">
-                Our team is ready to help you with any disaster preparedness or emergency management concerns.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <ModernButton
-                  onClick={() => window.open('tel:911', '_self')}
-                  variant="danger"
-                  size="lg"
-                  icon={Phone}
-                >
-                  Call Emergency Hotline
-                </ModernButton>
-                <ModernButton
-                  onClick={() => window.open('mailto:mdrrmo@pioduran.gov.ph', '_self')}
-                  variant="warning"
-                  size="lg"
-                  icon={Mail}
-                >
-                  Send Email
-                </ModernButton>
-              </div>
-            </ModernCard>
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Contact Information */}
+              <ModernCard variant="gradient" className="p-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-950 mb-6">
+                  <Shield className="w-8 h-8 text-yellow-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-blue-950 mb-4">
+                  Still Have Questions?
+                </h2>
+                <p className="text-blue-800 mb-6">
+                  Our team is ready to help you with any disaster preparedness or emergency management concerns.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <ModernButton
+                    onClick={() => window.open('tel:(052)234-5678', '_self')}
+                    variant="primary"
+                    size="md"
+                    icon={Phone}
+                    className="w-full"
+                  >
+                    Call (052) 234-5678
+                  </ModernButton>
+                  <ModernButton
+                    onClick={() => window.open('mailto:mdrrmo@pioduran.gov.ph', '_self')}
+                    variant="secondary"
+                    size="md"
+                    icon={Mail}
+                    className="w-full"
+                  >
+                    Email Us
+                  </ModernButton>
+                </div>
+              </ModernCard>
+
+              {/* Quick Contact Form */}
+              <ModernCard variant="glass" className="p-8">
+                <h3 className="text-2xl font-bold text-white mb-6">Quick Contact</h3>
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-white font-medium mb-2">Your Name</label>
+                    <input
+                      type="text"
+                      value={contactForm.name}
+                      onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                      placeholder="Enter your name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-white font-medium mb-2">Email Address</label>
+                    <input
+                      type="email"
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-white font-medium mb-2">Message</label>
+                    <textarea
+                      value={contactForm.message}
+                      onChange={(e) => setContactForm(prev => ({ ...prev, message: e.target.value }))}
+                      rows={4}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white/90 backdrop-blur-sm resize-none"
+                      placeholder="Your question or message"
+                    />
+                  </div>
+                  <ModernButton
+                    type="submit"
+                    disabled={isSubmitting}
+                    loading={isSubmitting}
+                    variant="warning"
+                    size="lg"
+                    icon={Send}
+                    className="w-full"
+                  >
+                    Send Message
+                  </ModernButton>
+                </form>
+              </ModernCard>
+            </div>
           </div>
         </section>
       </div>
