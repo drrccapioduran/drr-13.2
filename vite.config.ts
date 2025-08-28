@@ -29,7 +29,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true
+    host: true,
+    hmr: {
+      overlay: false // 🚫 disables error overlay in the browser
+    }
   },
   preview: {
     port: 4173,
