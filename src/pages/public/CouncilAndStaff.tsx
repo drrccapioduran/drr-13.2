@@ -486,76 +486,88 @@ const CouncilAndStaff: React.FC = () => {
                 </ModernCard>
               </div>
 
-              {/* Core Officers */}
-              {displayHierarchy.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {displayHierarchy
-                    .filter(person => person.level > 2)
-                    .reduce((groups, person) => {
-                      const dept = person.department;
-                      if (!groups[dept]) groups[dept] = [];
-                      groups[dept].push(person);
-                      return groups;
-                    }, {} as Record<string, any[]>)
-                  }
-                  {Object.entries(
-                    displayHierarchy
-                      .filter(person => person.level > 2)
-                      .reduce((groups, person) => {
-                        const dept = person.department;
-                        if (!groups[dept]) groups[dept] = [];
-                        groups[dept].push(person);
-                        return groups;
-                      }, {} as Record<string, any[]>)
-                  ).map(([department, personnel]) => (
-                    <ModernCard key={department} variant="interactive" className="overflow-hidden">
-                      <div className="bg-gradient-to-r from-blue-950 to-blue-900 p-6 text-center">
-                        <h3 className="text-lg font-bold text-yellow-500">{department}</h3>
+{/* Core Officers */}
+{displayHierarchy.length > 0 ? (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    {Object.entries(
+      displayHierarchy
+        .filter(person => person.level > 2)
+        .reduce((groups, person) => {
+          const dept = person.department;
+          if (!groups[dept]) groups[dept] = [];
+          groups[dept].push(person);
+          return groups;
+        }, {} as Record<string, any[]>)
+    ).map(([department, personnel]) => (
+      <ModernCard
+        key={department}
+        variant="interactive"
+        className="overflow-hidden"
+      >
+        <div className="bg-gradient-to-r from-blue-950 to-blue-900 p-6 text-center">
+          <h3 className="text-lg font-bold text-yellow-500">{department}</h3>
+        </div>
+        <div className="p-6">
+          {personnel.map((person) => (
+            <div
+              key={person.id}
+              className="border-b border-gray-200 last:border-b-0 py-4 cursor-pointer hover:bg-blue-50 transition-colors rounded-lg px-2"
+              onClick={() => toggleMember(`hierarchy-${person.id}`)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  <img
+                    src={
+                      person.photo ||
+                      'https://res.cloudinary.com/dedcmctqk/image/upload/v1749381954/samples/smile.jpg'
+                    }
+                    alt={person.name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-blue-950 flex-shrink-0"
+                  />
+                  <div className="flex-1">
+                    <h4 className="font-bold text-blue-950 mb-1">{person.name}</h4>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {person.designation}
+                    </p>
+
+                    {expandedMember === `hierarchy-${person.id}` && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg animate-fade-in">
+                        <div className="space-y-2 text-sm text-gray-700">
+                          <p>
+                            <strong>Department:</strong> {person.department}
+                          </p>
+                          <p>
+                            <strong>Level:</strong> {person.level}
+                          </p>
+                          <p>
+                            <strong>Order:</strong> {person.order_index}
+                          </p>
+                        </div>
                       </div>
-                      <div className="p-6">
-                        {personnel.map((person) => (
-                          <div 
-                            key={person.id} 
-                            className="border-b border-gray-200 last:border-b-0 py-4 cursor-pointer hover:bg-blue-50 transition-colors rounded-lg px-2"
-                            onClick={() => toggleMember(`hierarchy-${person.id}`)}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-start gap-4">
-                                <img 
-                                  src={person.photo || 'https://res.cloudinary.com/dedcmctqk/image/upload/v1749381954/samples/smile.jpg'}
-                                  alt={person.name}
-                                  className="w-12 h-12 rounded-full object-cover border-2 border-blue-950 flex-shrink-0"
-                                />
-                                <div className="flex-1">
-                                  <h4 className="font-bold text-blue-950 mb-1">{person.name}</h4>
-                                  <p className="text-sm text-gray-600 mb-2">{person.designation}</p>
-                                  
-                                  {expandedMember === `hierarchy-${person.id}` && (
-                                    <div className="mt-3 p-3 bg-blue-50 rounded-lg animate-fade-in">
-                                      <div className="space-y-2 text-sm text-gray-700">
-                                        <p><strong>Department:</strong> {person.department}</p>
-                                        <p><strong>Level:</strong> {person.level}</p>
-                                        <p><strong>Order:</strong> {person.order_index}</p>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              <button className="text-blue-950 hover:text-yellow-500 transition-colors ml-2 self-start mt-1">
-                                {expandedMember === `hierarchy-${person.id}` ? 
-                                  <ChevronUp size={20} /> : 
-                                  <ChevronDown size={20} />
-                                }
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ModernCard>
-                  ))}
+                    )}
+                  </div>
                 </div>
-              )}
-              ) : (
+                <button className="text-blue-950 hover:text-yellow-500 transition-colors ml-2 self-start mt-1">
+                  {expandedMember === `hierarchy-${person.id}` ? (
+                    <ChevronUp size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </ModernCard>
+    ))}
+  </div>
+) : (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    {/* fallback content */}
+  </div>
+)}
+
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <ModernCard key={officer.id} variant="interactive" className="overflow-hidden">
                     <div className="bg-gradient-to-r from-blue-950 to-blue-900 p-6 text-center">
